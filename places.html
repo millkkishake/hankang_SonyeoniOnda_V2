@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>방문 장소 · 광주 문예기행</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="motion.js"></script>
+<style>
+  /* 상단 제목 및 부제 영역 */
+  .detail-header {
+    margin-bottom: 1.2rem;
+  }
+  .detail-header h2 {
+    font-size: 2.1rem;
+    margin: 0 0 0.3rem;
+    color: var(--text);
+  }
+  .detail-header .subtitle {
+    font-size: 1.05rem;
+    color: var(--candle, #E3A13B);
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.5;
+    word-break: keep-all;
+  }
+
+  /* 감성 이미지 카드 */
+  .photo-card {
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    background: #10131c;
+  }
+  
+  /* 초기 원본 사진 (밝기 100%) */
+  .photo-card .photo {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+    filter: brightness(1);
+    opacity: 0;
+    transform: scale(1.04);
+    transition: opacity .9s var(--ease), transform 1.8s var(--ease), filter 1.2s var(--ease);
+  }
+  /* 사진이 다 불러와지면 살짝 커진 상태에서 제자리로 내려앉음 */
+  .photo-card .photo.loaded {
+    opacity: 1;
+    transform: none;
+  }
+  
+  /* 2초 뒤 서서히 어두워지는 사진 효과 */
+  .photo-card.active .photo {
+    filter: brightness(0.7);
+  }
+  
+  /* 오버레이 (초기 상태: 투명) */
+  .photo-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2rem 1.5rem 1.8rem;
+    background: linear-gradient(
+      to top,
+      rgba(15, 17, 26, 0.95) 0%,
+      rgba(15, 17, 26, 0.75) 55%,
+      rgba(15, 17, 26, 0.1) 85%,
+      transparent 100%
+    );
+    color: #f1f2ee;
+    opacity: 0;
+    transition: opacity 1.2s var(--ease);
+  }
+  
+  /* 2초 뒤 부드럽게 나타나는 오버레이 */
+  .photo-card.active .photo-overlay {
+    opacity: 1;
+  }
+  
+  .photo-overlay .desc {
+    font-size: 1.02rem;
+    line-height: 1.75;
+    color: #e2e4dd;
+    margin: 0;
+    min-height: 4.5em; /* 타자기 칠 때 카드 높이 흔들림 방지 */
+    word-break: keep-all;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  }
+
+  /* 타자기 깜빡이는 커서 */
+  .typing-desc {
+    display: inline;
+    white-space: pre-line;
+  }
+  .typing-desc::after {
+    content: '|';
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--candle, #E3A13B);
+    font-weight: bold;
+    animation: blink 0.7s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* 휴대폰: 세로 화면에 맞춰 사진도 세로로, 설명이 사진 밖으로 넘치지 않게 */
+  @media (max-width: 760px) {
+    .detail-header { margin-bottom: .9rem; }
+    .detail-header h2 { font-size: 1.6rem; }
+    .detail-header .subtitle { font-size: .95rem; }
+    .photo-card { border-radius: 14px; }
+    .photo-card .photo { aspect-ratio: 4 / 5; }
+    .photo-overlay { padding: 3rem 1.1rem 1.2rem; }
+    .photo-overlay .desc { font-size: .95rem; line-height: 1.7; min-height: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><nav>
+  <a class="brand" href="index.html">광주 문예기행</a>
+  <a href="index.html">처음</a>
+  <a href="comic.html">인물 웹툰</a>
+  <a href="places.html" aria-current="page">방문 장소</a>
+</nav></header>
+
+<main>
+  <h1>방문 장소</h1>
+  <p class="lede">장소를 고르면 사진과 설명이 나타납니다.</p>
+
+  <div class="places">
+    <ul class="place-list" id="list" aria-label="장소 목록"></ul>
+    <article class="detail" id="detail" aria-live="polite"></article>
+  </div>
+</main>
+
+<script>
+/* =========================================================
+   장소 데이터 — 부제 및 세부 내용
+   ========================================================= */
+const PLACES = [
+ { id:'jeonil', name:'전일빌딩', img:'images/1.jpg',
+   subtitle:'245개의 진실과 기억',
+   desc:'245개의 헬기 공중사격 흔적을 가슴에 품은 채로 긴 세월을 의연히 서서 광장을 내려다보고있는 역사의 증인' },
+
+ { id:'sangmugwan', name:'상무관', img:'images/2.jpg',
+   subtitle:'소년 동호의 공간, 작가가 동호의 영혼과 처음 조우하는 곳',
+   desc:'그러나 이제 왔다. 어쩔 수 없다. 점퍼의 지퍼를 끝까지 올리고, 해가 질 때까지 여기 있을 것이다. 소년의 얼굴이 또렷해질 때까지. 그의 목소리가 들릴 때까지. 안보이는 마룻장 위를 걸어가는 그의 뒷모습이 어른어른 비칠 때까지. -소설\'소년이온다\' 200쪽-' },
+
+ { id:'dochung', name:'옛 전남도청', img:'images/3.jpg',
+   subtitle:'시민군 최후의 항쟁지, 동호가 은숙,선주 등과 만나게 되는 곳',
+   desc:'시민 여러분, 도청으로 나와주십시오. 지금 계엄군이 시내로 들어오고있습니다... 우리는 끝까지 싸울 것입니다. 그 목소리가 멀어진 지 십분이  채 되지않아 군인들의 소리가 들렸다... -소설\'소년이 온다\' 91쪽-' },
+
+ { id:'square', name:'5.18민주광장', img:'images/4.jpeg',
+   subtitle:'까마득한 탑처럼 겹겹이 쌓아 올려진 광주시민들의 결연한 의지의 공간',
+   desc:'여자의 선창으로 애국가가 시작된다. 수천 사람의 목소리가 수천미터의 탑처럼 겹겹이 쌓아올려져 여자의 목소리를 덮어버린다. 무겁디무겁게 올라가다가 절정에서 결연히 쓸려내려오는 그 곡조를, 너도 낮은 목소리로 따라부른다. -소설\'소년이 온다\' 8쪽-' },
+
+ { id:'acc', name:'국립아시아문화전당', img:'images/5.jpg',
+   subtitle:'',
+   desc:'옛 전남도청 부지에 조성된 복합문화공간입니다.' },
+
+ { id:'redcross', name:'옛 광주적십자병원', img:'images/6.jpg',
+   subtitle:'너도나도 앞다투어 부상자들과 피를 나눈 곳, 그곳에서 죽어 돌아오는 서른 명의 사람들',
+   desc:'여러분, 적십자병원에 안치되었던, 사랑하는 우리 시민들이 지금 이곳으로 들어오고 있습니다... 오늘 적십자 병원에서 오는 죽은 사람들은 모두 몇이나 될까. 네가 아침에 물었을 때 진수 형은 짧게 대답했다. 한 서른명 될 거다. -소설\'소년이 온다\' 8쪽-' },
+
+ { id:'ymca', name:'광주YMCA', img:'images/7.jpg',
+   subtitle:'해방광주의 심장이자 두뇌',
+   desc:'두살 많은 외사촌형을 따라 시민군에 들어갔는데, 형은 마지막 새벽 YMCA에서 죽고 혼자 잡혀왔다고 했습니다. -소설\'소년이 온다\' 120쪽-' },
+
+ { id:'archives', name:'5.18민주화운동기록관', img:'images/8.jpg',
+   subtitle:'옛 광주가톨릭센터: 선주가 동호의 죽음을 확인하게 되는 곳',
+   desc:'그러다 너를 본 건 금남로에서였어. 가톨릭센터 외벽에 방금 학생들이 붙여 놓고 간 사진들을 들여다 봤을 때였어.... 나는 재빨리 사진 한장을 뜯었어. 둘둘 말아서 쥐고 걸었어. -소설\'소년이 온다\' 122쪽-' }
+];
+
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* 사진이 없을 때 쓰는 자리표시 그림 */
+const placeholder = name => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#10131C"/>
+   <circle cx="640" cy="110" r="38" fill="#E3A13B" opacity=".3"/>
+   <text x="50%" y="45%" text-anchor="middle" font-family="serif" font-size="40" fill="#F1F2EE">${name}</text>
+   <text x="50%" y="55%" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#A3A9B5">images 폴더에 사진을 넣으면 여기에 나타납니다</text></svg>`);
+
+/* 타이머 변수 */
+let typingTimer = null;
+let overlayTimer = null;
+
+function startTyping(element, text, speed = 35) {
+  if (typingTimer) clearTimeout(typingTimer);
+  element.textContent = '';
+  let index = 0;
+
+  function type() {
+    if (index < text.length) {
+      element.textContent += text.charAt(index);
+      index++;
+      typingTimer = setTimeout(type, speed);
+    }
+  }
+  type();
+}
+
+function render(cur){
+  // 기존 작동 중인 타이머 초기화
+  if (typingTimer) clearTimeout(typingTimer);
+  if (overlayTimer) clearTimeout(overlayTimer);
+
+  const p = PLACES.find(x => x.id === cur) || PLACES[0];
+  $('#list').querySelectorAll('button').forEach(b => {
+    const on = b.dataset.id === p.id;
+    b.setAttribute('aria-pressed', on);
+    if (on) Motion.scrollChip($('#list'), b);
+  });
+
+  $('#detail').innerHTML = `
+    <header class="detail-header">
+      <h2>${esc(p.name)}</h2>
+      ${p.subtitle ? `<p class="subtitle">${esc(p.subtitle)}</p>` : ''}
+    </header>
+    <div class="photo-card" id="photo-card">
+      <img class="photo" src="${p.img}" alt="${esc(p.name)} 사진"
+           onload="this.classList.add('loaded')"
+           onerror="this.onerror=null;this.src=placeholder('${p.name}')">
+      <div class="photo-overlay">
+        <div class="desc"><p class="typing-desc" id="typed-text"></p></div>
+      </div>
+    </div>`;
+
+  const cardEl = $('#photo-card');
+  const typedEl = $('#typed-text');
+
+  // 2초(2000ms) 후 오버레이 활성화 및 타자기 시작
+  overlayTimer = setTimeout(() => {
+    if (cardEl) cardEl.classList.add('active');
+    if (typedEl) startTyping(typedEl, p.desc);
+  }, 2000);
+}
+
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) location.hash = b.dataset.id;
+});
+window.addEventListener('hashchange', () =>
+  Motion.swap('#detail', () => render(location.hash.slice(1))));
+
+$('#list').innerHTML = PLACES.map(x =>
+  `<li><button type="button" data-id="${x.id}" aria-pressed="false">${esc(x.name)}</button></li>`).join('');
+render(location.hash.slice(1));
+</script>
+</body>
+</html>

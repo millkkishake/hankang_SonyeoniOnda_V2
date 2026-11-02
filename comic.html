@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>인물 웹툰 · 소년이 온다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="motion.js"></script>
+</head>
+<body>
+<header class="top"><nav>
+  <a class="brand" href="index.html">광주 문예기행</a>
+  <a href="index.html">처음</a>
+  <a href="comic.html" aria-current="page">인물 웹툰</a>
+  <a href="places.html">방문 장소</a>
+</nav></header>
+
+<main>
+  <h1>인물 웹툰</h1>
+  <p class="lede">인물을 고르면 그 사람이 화자인 장을 세로 웹툰으로 볼 수 있습니다. 순서대로 읽으면 소설 한 권을 훑는 셈이에요.</p>
+
+  <div class="chapters" id="chapters" role="group" aria-label="인물 선택"></div>
+  <section class="profile" id="profile" aria-live="polite"></section>
+  <div class="strip" id="strip"></div>
+  <section class="after" id="after"></section>
+</main>
+
+<script>
+/* =========================================================
+   1) 그림(장면) — 간단한 SVG 배경. 장면 이름으로 불러 씁니다.
+   ========================================================= */
+let uid = 0;
+const id = () => 'g' + (++uid);
+const svg = (inner, defs = '') =>
+  `<svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${defs}</defs>${inner}</svg>`;
+const lin = (gid, a, b) =>
+  `<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+const fig = (x, g, s = 1, c = '#141826') =>
+  `<circle cx="${x}" cy="${g - 72 * s}" r="${12 * s}" fill="${c}"/><rect x="${x - 15 * s}" y="${g - 58 * s}" width="${30 * s}" height="${58 * s}" rx="${12 * s}" fill="${c}"/>`;
+const candle = (x, y, s = 1) =>
+  `<ellipse cx="${x}" cy="${y - 22 * s}" rx="${20 * s}" ry="${24 * s}" fill="#E3A13B" opacity=".25"/>` +
+  `<path class="flame" d="M${x} ${y - 38 * s}c${5 * s} ${7 * s} ${6 * s} ${12 * s} 0 ${18 * s}c${-6 * s} ${-6 * s} ${-5 * s} ${-11 * s} 0 ${-18 * s}z" fill="#F0B24A"/>` +
+  `<rect x="${x - 6 * s}" y="${y - 18 * s}" width="${12 * s}" height="${30 * s}" fill="#EEECE4"/>`;
+
+const SCENES = {
+  street(){ const g=id(); let b='';
+    [[0,170],[70,120],[130,200],[210,140],[280,230],[360,150],[430,190],[500,130],[560,210]].forEach(([x,h])=>{
+      b+=`<rect x="${x}" y="${330-h}" width="62" height="${h}" fill="#1B2033"/>`;
+      if(h>150) b+=`<rect x="${x+14}" y="${350-h}" width="8" height="10" fill="#E3A13B" opacity=".8"/>`; });
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/>${b}<rect y="330" width="600" height="70" fill="#151926"/>`, lin(g,'#2E3554','#9A7473')); },
+  hall(){ const g=id(); let c='';
+    for(let r=0;r<3;r++) for(let i=0;i<5;i++){ const w=70+r*14, x=40+i*(110+r*4)-r*20, y=210+r*55;
+      c+=`<rect x="${x}" y="${y}" width="${w}" height="${26+r*6}" rx="3" fill="#D9DBD4" opacity="${.55+r*.15}"/>`; }
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><rect y="330" width="600" height="70" fill="#14171F"/>${c}${candle(80,200,.8)}${candle(520,200,.8)}`, lin(g,'#2A2F40','#1C2030')); },
+  candle(){ return svg(`<rect width="600" height="400" fill="#141826"/><circle cx="300" cy="210" r="150" fill="#E3A13B" opacity=".08"/>${candle(300,280,2.6)}`); },
+  crowd(){ const g=id(); let f='';
+    for(let i=0;i<14;i++) f+=fig(20+i*44,(i%2?395:410),1.3+(i%3)*.15,'#1A1D2B');
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/>${f}`, lin(g,'#3B3F5A','#7E6A76')); },
+  duo(){ return svg(`<rect width="600" height="400" fill="#343A4E"/><rect x="380" y="60" width="150" height="120" fill="#58607A"/><line x1="455" y1="60" x2="455" y2="180" stroke="#343A4E" stroke-width="6"/><rect y="340" width="600" height="60" fill="#232837"/>${fig(170,345,1.5,'#151926')}${fig(260,345,1.3,'#1C2030')}${fig(420,345,1.55,'#151926')}`); },
+  building(){ const g=id(); let w='';
+    for(let r=0;r<3;r++) for(let i=0;i<9;i++){ const lit=(r*9+i)%7===2;
+      w+=`<rect x="${130+i*38}" y="${200+r*38}" width="16" height="20" fill="${lit?'#E3A13B':'#2A3150'}"/>`; }
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><circle cx="500" cy="80" r="26" fill="#E6E4D8" opacity=".85"/><rect x="110" y="180" width="380" height="150" fill="#10142A"/><rect x="265" y="130" width="70" height="60" fill="#10142A"/>${w}<rect y="330" width="600" height="70" fill="#0B0E1C"/>`, lin(g,'#141A2E','#2B3352')); },
+  soul(){ let o='';
+    [[160,120,6],[420,90,4],[500,250,5],[90,300,3],[330,320,4],[250,60,3]].forEach(([x,y,r])=>o+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#C9D4F0" opacity=".6"/>`);
+    return svg(`<rect width="600" height="400" fill="#0F1322"/><circle cx="300" cy="200" r="90" fill="#9FB0E0" opacity=".08"/><circle cx="300" cy="200" r="46" fill="#C9D4F0" opacity=".18"/>${o}`); },
+  pile(){ const g=id();
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><ellipse cx="300" cy="380" rx="360" ry="70" fill="#1A1721"/><ellipse cx="260" cy="330" rx="150" ry="40" fill="#14111A"/><ellipse cx="360" cy="315" rx="110" ry="30" fill="#1D1824"/><line x1="500" y1="330" x2="500" y2="170" stroke="#14111A" stroke-width="10"/><circle cx="500" cy="160" r="50" fill="#14111A" opacity=".85"/>`, lin(g,'#4A4256','#1E1B26')); },
+  fire(){ const g=id();
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><ellipse cx="300" cy="150" rx="140" ry="50" fill="#5A5560" opacity=".5"/><ellipse cx="360" cy="100" rx="110" ry="35" fill="#5A5560" opacity=".35"/><rect y="350" width="600" height="50" fill="#0F0D12"/>`, lin(g,'#120F18','#B5582E')); },
+  office(){ return svg(`<rect width="600" height="400" fill="#3C4150"/><rect y="270" width="600" height="130" fill="#5A4636"/><rect x="200" y="215" width="200" height="70" fill="#F2F1EC" transform="rotate(-4 300 250)"/><g transform="rotate(-4 300 250)"><rect x="215" y="228" width="120" height="8" fill="#111"/><rect x="215" y="246" width="160" height="8" fill="#111"/><rect x="215" y="264" width="90" height="8" fill="#111"/></g><line x1="470" y1="270" x2="470" y2="150" stroke="#222" stroke-width="6"/><path d="M440 150h60l-10-30h-40z" fill="#222"/><ellipse cx="470" cy="200" rx="90" ry="60" fill="#E3A13B" opacity=".12"/>`); },
+  interrog(){ return svg(`<rect width="600" height="400" fill="#15171F"/><line x1="300" y1="0" x2="300" y2="70" stroke="#444" stroke-width="3"/><path d="M280 70h40l120 330H160z" fill="#E8E2C8" opacity=".14"/><path d="M280 70h40l-6-14h-28z" fill="#555"/>${fig(300,360,1.6,'#0A0B10')}<rect y="360" width="600" height="40" fill="#0D0E14"/>`); },
+  stage(){ return svg(`<rect width="600" height="400" fill="#121420"/><path d="M0 0h130c-20 140-10 280 0 400H0z" fill="#5A2A33"/><path d="M600 0H470c20 140 10 280 0 400h130z" fill="#5A2A33"/><ellipse cx="300" cy="350" rx="170" ry="30" fill="#F2E7C9" opacity=".22"/><path d="M250 0h100l60 350H190z" fill="#F2E7C9" opacity=".07"/>${fig(250,350,1.5,'#06070C')}${fig(350,350,1.5,'#06070C')}`); },
+  bars(){ let b=''; for(let x=20;x<600;x+=48) b+=`<rect x="${x}" y="0" width="10" height="400" fill="#22252E"/>`;
+    return svg(`<rect width="600" height="400" fill="#474D5A"/><rect y="320" width="600" height="80" fill="#363B46"/>${fig(330,330,1.3,'#1A1D25')}${b}`); },
+  tape(){ return svg(`<rect width="600" height="400" fill="#2E3342"/><rect y="290" width="600" height="110" fill="#4A3A2E"/><rect x="170" y="190" width="260" height="120" rx="10" fill="#1A1C24"/><rect x="200" y="210" width="200" height="60" rx="4" fill="#C9CBC2"/><circle cx="250" cy="240" r="18" fill="#1A1C24"/><circle cx="350" cy="240" r="18" fill="#1A1C24"/><circle cx="410" cy="292" r="5" fill="#C0392B"/>`); },
+  factory(){ let m=''; for(let r=0;r<2;r++) for(let i=0;i<5;i++){ const x=40+i*115, y=220+r*80;
+      m+=`<rect x="${x}" y="${y}" width="80" height="14" fill="#1E2230"/><path d="M${x+10} ${y}v-30h50v12h-10v18z" fill="#2B3040"/>`; }
+    let l=''; for(let i=0;i<4;i++) l+=`<circle cx="${90+i*140}" cy="60" r="8" fill="#F2E3B0"/><circle cx="${90+i*140}" cy="60" r="40" fill="#F2E3B0" opacity=".08"/>`;
+    return svg(`<rect width="600" height="400" fill="#3A3F4C"/>${l}${m}`); },
+  house(){ const g=id();
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><rect y="320" width="600" height="80" fill="#3A3428"/><path d="M180 200h240l-30-50H210z" fill="#2C2A30"/><rect x="200" y="200" width="200" height="120" fill="#6E6152"/><rect x="250" y="235" width="40" height="40" fill="#E3A13B" opacity=".9"/><rect x="320" y="245" width="40" height="75" fill="#3E352C"/><line x1="480" y1="320" x2="480" y2="190" stroke="#2C2A30" stroke-width="8"/><circle cx="480" cy="180" r="45" fill="#3E4A34"/><circle cx="470" cy="170" r="6" fill="#D97A2B"/><circle cx="495" cy="190" r="6" fill="#D97A2B"/>`, lin(g,'#6E7C99','#D7B9A0')); },
+  flower(){ const g=id(); let f='';
+    for(let i=0;i<40;i++){ const x=(i*73)%600, y=290+(i*37)%100, c=i%3?'#C25B74':'#EBC94A';
+      f+=`<circle cx="${x}" cy="${y}" r="${5+(i%3)}" fill="${c}"/>`; }
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><circle cx="470" cy="90" r="40" fill="#F6E3A3"/><path d="M0 280q150-60 300-10t300-20v150H0z" fill="#8FA67E"/>${f}`, lin(g,'#BFD3DE','#EDE6D6')); },
+  snow(){ const g=id(); let s='';
+    for(let i=0;i<60;i++) s+=`<circle cx="${(i*97)%600}" cy="${(i*53)%400}" r="${1.5+(i%3)}" fill="#fff" opacity=".85"/>`;
+    return svg(`<rect width="600" height="400" fill="url(#${g})"/><ellipse cx="160" cy="350" rx="90" ry="34" fill="#F6F7F9"/><ellipse cx="440" cy="360" rx="90" ry="30" fill="#F6F7F9"/><rect x="285" y="270" width="30" height="70" fill="#6A6F7A"/>${candle(300,360,1.3)}${s}`, lin(g,'#8A94A6','#E6EAF0')); }
+};
+
+/* =========================================================
+   2) 인물·장 데이터 — 여기 내용을 고치면 웹툰이 바뀝니다.
+      h: 칸 높이(s/m/l), narr: 해설, bubbles: 말풍선
+      think:true → 속마음(점선), r:true → 오른쪽 정렬
+      ※ 대사는 원작 문장이 아니라 줄거리 요약용으로 새로 쓴 것입니다.
+   ========================================================= */
+const CHAPTERS = [
+ { id:'dongho', no:'1장', title:'어린 새', name:'동호', when:'1980년 5월', voice:'동호를 ‘너’라고 부르는 2인칭',
+   profile:'열다섯 살 중학생. 도청 앞 상무관에서 시신 수습을 돕는다.',
+   panels:[
+    {scene:'street', h:'m', narr:'1980년 5월, 광주. 열다섯 살 중학생 동호는 도청 앞 상무관에 있다.'},
+    {scene:'hall', h:'l', narr:'관에 누운 사람들의 이름을 적고, 가족을 찾으러 온 이들을 안내하는 것이 동호가 맡은 일이다.',
+      bubbles:[{who:'동호', t:'얼굴 확인하실 분은 이쪽으로 오세요.'}]},
+    {scene:'candle', h:'m', narr:'촛불이 꺼지지 않게 지키는 것도.',
+      bubbles:[{who:'동호', t:'몸을 떠난 혼은 어디로 가는 걸까. 아직 여기 머물러 있을까.', think:true}]},
+    {scene:'crowd', h:'l', narr:'동호가 정말 찾는 사람은 친구 정대다. 시위대 속에서 총소리와 함께 정대가 쓰러지는 걸 보았지만, 동호는 달아났다.',
+      bubbles:[{who:'동호', t:'그때 돌아가서 손을 잡았더라면….', think:true, r:true}]},
+    {scene:'duo', h:'m', bubbles:[{who:'은숙 누나', t:'동호야, 오늘은 집에 가. 어머니가 찾으셔.'},{who:'동호', t:'조금만 더 있다가 갈게요.', r:true}]},
+    {scene:'building', h:'l', narr:'계엄군이 다시 들어온다는 밤. 동호는 집으로 돌아가지 않고 도청에 남는다.'}
+   ],
+   q:'동호는 왜 집에 가지 않았을까요? 정대를 두고 달아났다는 마음이 그 선택에 어떤 영향을 주었을지 생각해 봅시다.' },
+
+ { id:'jeongdae', no:'2장', title:'검은 숨', name:'정대', when:'1980년 5월', voice:'죽은 정대의 혼이 말하는 1인칭',
+   profile:'동호의 친구. 시위 도중 총에 맞아 숨졌다. 공장에 다니며 자신을 공부시킨 누나 정미가 있다.',
+   panels:[
+    {scene:'soul', h:'m', narr:'나는 정대. 아니, 정대였던 혼이다.'},
+    {scene:'pile', h:'l', narr:'내 몸은 이름 모를 다른 몸들과 함께 어딘가에 쌓여 있다. 나는 그 곁을 떠나지 못한다.'},
+    {scene:'soul', h:'s', bubbles:[{who:'정대', t:'누나는 무사할까. 누나를 찾고 싶은데.', think:true}]},
+    {scene:'fire', h:'l', narr:'며칠 뒤 군인들이 몸들을 태운다. 몸이 사라지자, 붙들고 있던 자리도 사라진다.'},
+    {scene:'soul', h:'m', bubbles:[{who:'정대', t:'누가 나를 죽였을까. 그리고… 왜.', think:true, r:true}]},
+    {scene:'building', h:'m', narr:'어느 새벽, 먼 곳에서 무언가 툭 끊어지는 느낌이 전해진다. 동호였다.'}
+   ],
+   q:'작가는 왜 죽은 사람의 혼에게 목소리를 주었을까요? 산 사람이 말할 수 없는 무엇을 이 장이 말하고 있나요?' },
+
+ { id:'eunsook', no:'3장', title:'일곱 개의 뺨', name:'은숙', when:'1985년', voice:'은숙을 따라가는 3인칭',
+   profile:'1980년 상무관에서 동호와 함께 일했던 고등학생. 5년 뒤 출판사 편집자가 되었다.',
+   panels:[
+    {scene:'office', h:'m', narr:'1985년, 서울. 은숙은 작은 출판사에서 일한다.'},
+    {scene:'office', h:'m', narr:'검열에 넘겼던 원고가 돌아왔다. 문장 곳곳이 먹줄로 지워져 있다.',
+      bubbles:[{who:'은숙', t:'지워진 줄 아래 무엇이 있었는지, 나는 안다.', think:true}]},
+    {scene:'interrog', h:'l', narr:'경찰서에 불려 가 원고를 쓴 사람의 행방을 추궁당하며, 은숙은 뺨을 일곱 번 맞았다.',
+      bubbles:[{who:'은숙', t:'하루에 한 대씩 잊자. 일곱 날이면 다 잊을 수 있어.', think:true}]},
+    {scene:'candle', h:'s', narr:'그러나 잊으려 할수록 그해 오월, 집에 가라는 말에 고개를 젓던 소년이 떠오른다.'},
+    {scene:'stage', h:'l', narr:'그 원고로 만든 연극이 무대에 오른다. 검열로 지워진 대사 자리에서, 배우들은 소리 없이 입술만 움직인다.',
+      bubbles:[{who:'은숙', t:'들리지 않아도, 나는 모두 알아들을 수 있다.', think:true, r:true}]}
+   ],
+   q:'‘지워진 대사’를 입 모양으로만 말하는 장면은 무엇을 상징할까요?' },
+
+ { id:'jinsu', no:'4장', title:'쇠와 피', name:'진수와 ‘나’', when:'1990년', voice:'살아남은 ‘나’의 1인칭 증언',
+   profile:'마지막 밤 도청에 남았던 청년들. ‘나’는 함께 붙잡혀 고문을 겪은 진수 형을 기억한다.',
+   panels:[
+    {scene:'tape', h:'s', narr:'1990년. 누군가 ‘나’에게 그날의 일을 증언해 달라고 찾아온다.'},
+    {scene:'building', h:'l', narr:'마지막 밤, 도청. 총을 든 이들 중에는 중학생, 고등학생도 있었다.',
+      bubbles:[{who:'진수 형', t:'새벽에 군인들이 들어오면, 총 내려놓고 손 들고 나가. 그래야 살아.'}]},
+    {scene:'street', h:'m', narr:'아이들은 그 말대로 했다. 그리고 살아남지 못했다.'},
+    {scene:'bars', h:'l', narr:'살아남은 사람들은 감옥으로 끌려갔다. 굶주림과 고문 속에서, 사람은 자신이 무엇인지를 묻게 된다.',
+      bubbles:[{who:'나', t:'인간이란 대체 무엇일까.', think:true}]},
+    {scene:'bars', h:'s', narr:'풀려난 뒤에도 진수 형은 그 시간을 벗어나지 못했고, 끝내 스스로 세상을 떠났다.'},
+    {scene:'tape', h:'m', bubbles:[{who:'나', t:'증언이요? …저는 아직 그 밤 안에 살고 있습니다.', r:true}]}
+   ],
+   q:'살아남은 사람의 고통은 왜 ‘끝나지 않는’ 것일까요? 이 장의 제목 ‘쇠와 피’가 가리키는 것을 찾아봅시다.' },
+
+ { id:'seonju', no:'5장', title:'밤의 눈동자', name:'선주', when:'2002년', voice:'선주를 ‘당신’이라 부르는 2인칭',
+   profile:'공장에서 일하며 노동운동을 했던 여성. 1980년 상무관에서 동호, 은숙과 함께 있었다.',
+   panels:[
+    {scene:'tape', h:'m', narr:'2002년. 연구자 윤이 선주에게 녹음기를 보낸다. 그해 오월을 증언해 달라고.'},
+    {scene:'office', h:'s', bubbles:[{who:'선주', t:'말할 수 있을까. 아무에게도 말하지 않고 이십 년을 살았는데.', think:true}]},
+    {scene:'factory', h:'m', narr:'젊은 시절 선주는 공장에서 일하며 노동조합 활동을 했다. 그 경험이 선주를 오월의 거리로 이끌었다.'},
+    {scene:'hall', h:'m', narr:'그해 오월, 선주는 상무관에서 동호와 함께 죽은 이들을 돌보았다.'},
+    {scene:'bars', h:'l', narr:'붙잡힌 뒤 겪은 일들은 말로 옮길 수 없는 상처가 되어 몸에 남았다.'},
+    {scene:'soul', h:'m', narr:'선주는 녹음기 앞에서 오래 망설인다. 그 침묵 또한 증언의 일부다.'}
+   ],
+   q:'증언을 망설이는 선주의 침묵을 우리는 어떻게 들어야 할까요? 기록으로 남는 것과 남지 못하는 것의 차이를 생각해 봅시다.' },
+
+ { id:'mother', no:'6장', title:'꽃 핀 쪽으로', name:'어머니', when:'2010년', voice:'동호에게 말을 건네는 어머니의 1인칭(전라도 말)',
+   profile:'동호의 어머니. 막내아들을 잃은 뒤 30년을 견뎌 왔다.',
+   panels:[
+    {scene:'house', h:'m', narr:'2010년. 동호의 어머니가 세상에 없는 막내에게 말을 건다.'},
+    {scene:'duo', h:'m', bubbles:[{who:'어머니', t:'그날 니 데리러 갔을 때, 억지로라도 손 잡고 끌고 왔어야 했는디.'}]},
+    {scene:'crowd', h:'l', narr:'아들을 잃은 뒤 어머니는 다른 유가족들과 함께 거리로 나섰다. 진실을 밝히라고 외치며.'},
+    {scene:'flower', h:'l', narr:'어머니가 가장 자주 떠올리는 건 어린 동호의 작은 손이다. 동호는 늘 햇빛 비치고 꽃이 핀 쪽으로 엄마 손을 잡아끌었다.'},
+    {scene:'flower', h:'s', bubbles:[{who:'어머니', t:'인자 니가 가자는 데로 따라가께.', r:true}]}
+   ],
+   q:'장 제목 ‘꽃 핀 쪽으로’는 어떤 마음을 담고 있을까요?' },
+
+ { id:'author', no:'에필로그', title:'눈 덮인 램프', name:'작가', when:'2013년', voice:'작가 자신의 1인칭',
+   profile:'어린 시절 광주에서 살았던 작가. 그 집에 이사 온 가족이 바로 동호네였다.',
+   panels:[
+    {scene:'house', h:'m', narr:'작가는 열 살 무렵까지 광주의 한 집에 살았다. 가족이 서울로 떠나며 그 집에 새로 이사 온 가족이 동호네였다.'},
+    {scene:'office', h:'m', narr:'몇 달 뒤 오월이 왔다. 어른들이 낮은 목소리로 나누던 그 아이의 이야기를, 작가는 오래 품고 살았다.'},
+    {scene:'duo', h:'m', narr:'2013년, 작가는 동호의 형을 찾아가 이 이야기를 써도 되는지 묻는다.',
+      bubbles:[{who:'동호의 형', t:'써 주세요. 아무도 함부로 하지 못하게, 제대로요.'}]},
+    {scene:'snow', h:'l', narr:'눈 내린 묘지. 작가는 동호의 묘 앞에 초를 밝힌다. 1장에서 동호가 지키던 그 촛불처럼.'}
+   ],
+   q:'소설이 촛불로 시작해 촛불로 끝나는 이유는 무엇일까요?' }
+];
+
+/* =========================================================
+   3) 화면 그리기
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function renderTabs(){
+  $('#chapters').innerHTML = CHAPTERS.map(c =>
+    `<button type="button" data-id="${c.id}" aria-pressed="false">${esc(c.name)}<small>${c.no} · ${esc(c.title)}</small></button>`).join('');
+}
+function markTabs(cur){
+  $('#chapters').querySelectorAll('button').forEach(b => {
+    const on = b.dataset.id === cur;
+    b.setAttribute('aria-pressed', on);
+    if (on) Motion.scrollChip($('#chapters'), b);
+  });
+}
+function render(cur){
+  const i = Math.max(0, CHAPTERS.findIndex(c => c.id === cur));
+  const c = CHAPTERS[i];
+  markTabs(c.id);
+  $('#profile').innerHTML = `<h2>${esc(c.name)}</h2>
+    <dl><dt>장</dt><dd>${c.no} 「${esc(c.title)}」</dd><dt>시간</dt><dd>${c.when}</dd>
+    <dt>시점</dt><dd>${esc(c.voice)}</dd><dt>인물</dt><dd>${esc(c.profile)}</dd></dl>`;
+  $('#strip').innerHTML = c.panels.map(p => `
+    <figure data-reveal class="panel h-${p.h||'m'}">
+      <div class="art">${SCENES[p.scene]()}</div>
+      ${p.narr ? `<p class="narr">${esc(p.narr)}</p>` : ''}
+      ${p.bubbles ? `<div class="bubbles">${p.bubbles.map(b =>
+          `<p class="bubble${b.think?' think':''}${b.r?' r':''}"><b>${esc(b.who)}</b>${esc(b.t)}</p>`).join('')}</div>` : ''}
+    </figure>`).join('');
+  const next = CHAPTERS[i+1];
+  $('#after').innerHTML = `<h3>기행 전에 생각해 볼 질문</h3><p>${esc(c.q)}</p>` +
+    (next ? `<a class="btn" href="#${next.id}">다음: ${esc(next.name)} (${next.no})</a>`
+          : `<a class="btn" href="places.html">방문 장소 보러 가기</a>`);
+  Motion.reveal($('#strip'));
+}
+$('#chapters').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) location.hash = b.dataset.id;
+});
+window.addEventListener('hashchange', () => {
+  $('#profile').scrollIntoView({behavior: Motion.still() ? 'auto' : 'smooth', block:'start'});
+  Motion.swap(['#profile', '#strip', '#after'], () => render(location.hash.slice(1)));
+});
+renderTabs();
+render(location.hash.slice(1));
+</script>
+</body>
+</html>
